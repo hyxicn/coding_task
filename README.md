@@ -1,34 +1,16 @@
 # Coding Task
 
-## Description
-Imagine the team is conducting a field experiment to assess the effectiveness of different Facebook ad campaigns in increasing COVID-19 vaccine uptake. The experiment involves two distinct ad strategies appealing to reason and emotions, respectively.
+## How to replicate my report
 
-Total participants: 5,000 across the US.
-Random assignment: 1/3 receive the first ad (reason), 1/3 the second ad (emotions), and 1/3 none (control group).
-Baseline survey completed by all participants; endline survey completed by 4,500 participants.
+You can recreate the findings presented in my full_report.pdf by following these simple steps:
 
-## Tasks
+1. Run the Report.Rmd file.
 
-1. Data simulation
+2. Then, run the A1.Rmd file.
 
-Write a script to simulate the raw data:
+3. Attach the A2.doc file
 
-One dataset for the baseline survey (e.g., with a unique identifier, some basic demographic information, and related questions)
-
-One dataset that contains information on the random assignment
-
-One dataset for the endline survey
-
-2. Analysis and Reporting
-
-Merge the simulated datasets;
-
-Produce tables or figures to evaluate the effectiveness of each campaign.
-
-## Results
-1
-
-## Replicate
+For simulating survey data separately, you can use the data_sim.R file. This file is already integrated into the A1.Rmd file to produce the graphics and tables featured in the full_report.
 
 
 
