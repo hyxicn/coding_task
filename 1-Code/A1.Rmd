@@ -1,0 +1,973 @@
+---
+title: "Appendix 1: Tables and Graphics"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, results = "asis")
+```
+
+
+```{r echo=FALSE}
+rm(list = ls())
+library(tidyverse)      # data manipulation and visualization
+library(readxl)         # read excel file
+library(data.table)     # extend dataframe
+library(readstata13)    # read stata file
+library(lubridate)      # handle date and time
+library(stargazer)      # regression summary 
+library(lfe)            # regression with fixed effect
+library(statar)         # additional regression
+library(haven)          # read dta
+library(gridExtra)      # arrange plot 
+library(fastDummies)    # create dummny variable
+library(kableExtra)     # kable extensions
+```
+
+
+
+```{r echo=FALSE}
+
+# Table 1. shows the overview of our random assignment.
+data <- data.frame(
+  "Group" = c("Control", "Reason","Emotion", "Total"),
+  "Phase 1" = c(1667, 1657, 1676, 5000),
+  "Phase 2" = c(1514,1493,1493, 4500),
+  "Retension" = c(0.9,0.9,0.9,0.9)
+)
+
+# Display the table using knitr::kable()
+knitr::kable(data, "latex", booktabs = T,caption = "Treatment Assignment and Retention")
+
+```
+
+
+```{r echo=FALSE}
+# Simulate data
+
+# Set seed for reproducibility
+set.seed(123)
+
+# Generate 5,000 sample data
+n <- 5000 
+treatment_groups <- c("reason", "emotion", "control")
+treatment_probabilities <- c(1/3, 1/3, 1/3)
+
+# baseline survey simulation -----
+df1 <- data.frame(
+  id = 1:n,
+  
+  # assign treatment
+  group = sample(treatment_groups, size = n, replace = TRUE, prob = treatment_probabilities),
+  
+  ###Vaccination status and intention###
+  
+  # Have you receive the Covid-19 vaccine?
+  # 0-No, 1-Yes/No,but I have an appointment
+  uptake = sample(c(0,1),size = n, replace = TRUE, prob = c(0.5,0.5)),
+  
+  # uptake == 0, How likely are you going to get one more Covid-19 vaccine?
+  # 1-extremely unlikely, 2-somewhat unlikely, 3-neither likely or unlikely
+  # 4-somewhat likely, 5-extremely likely
+  likely = sample.int(5,n,replace = T),
+
+  ###Attitudes towards covid-19###
+  
+  # How much are you worry about getting covid-19?
+  # 1-not at all, 3- neutral, 5-extremely worry
+  worry = sample(5, n, replace =T),
+  # How much do you agree that covid-19 is safe for your body?
+  # 1-completely disagree, 3-neutral, 5-completely agree
+  safe = sample.int(5, n, replace = T),
+  # How much do you agree that getting a covid-19 vaccination can improve your health?
+  imp = sample.int(5,n,replace = T),
+  # How much do you agree that get a vaccination can protect yourself and family from the disease?
+  family = sample.int(5,n,replace = T),
+  
+  ###Attitudes towards social media###
+  # How much do you belief the information about Covid-19 in social media?
+  # 1-not at all, 3-neutral, 5-a lot
+  belief = sample.int(5,n,replace = T),
+  
+  # Demographic controls ##
+  # What is your political belief?
+  republic = sample(c(1,0), n, replace = T, prob = c(0.5,0.5)),
+  # What is your gender
+  male = sample(c(1, 0), n, replace = TRUE, prob = c(0.5, 0.5)),
+  # What is your highest degree so far?
+  edu = sample(c("high_school","some_college","bachelor","postgraduate","others"),
+               size = n, replace = T,
+               prob = c(0.35,0.25,0.15,0.05,0.2)),
+  # What is your race?
+  race = sample(c("white","black","asian","hispanic","others"),
+                size = n, replace = T,
+                prob = c(0.65, 0.15, 0.06, 0.10, 0.04)),
+  # How old are you?
+  age = sample(c("15-24", "25-34", "35-44","45-54","55-64","others"),
+               size = n, replace = T,
+               prob = c(0.25,0.25,0.15,0.15,0.15,0.05)),
+  # What is your occupation?
+  occ = sample(c("management_and_professional","service","sales_and_office","construction_extraction_and_maintenance","farming_fishing_and_forestry","others"),
+               size = n, replace = T,
+               prob = c(0.3, 0.2,0.3,0.1,0.05,0.05)),
+  
+  ## location controls ##
+  # Where do you stay most of the time during a day?
+  urban = sample(c(1,0), n, replace = TRUE, prob = c(0.5, 0.5)), # working and living
+  # In which way do you work normally?
+  work = sample(c("home", "onsite","hybrid"),
+                size = n, replace = T,
+                prob = c(0.2,0.5,0.3)),
+  
+  # state fixed effect
+  state = sample(1:51,size = n, replace = T),
+  
+  # 4500 people replied for the endline survey
+  endline = sample(c(rep(1, 4500), rep(0, 500)))
+)
+
+# create a control column to indicate wether the sample is from control group
+df1$treatment <-ifelse(df1$group!= "control", 1, 0)
+
+```
+
+
+```{r}
+# Summary statistics
+
+# Create dummy variable before Summary Statistics
+
+df <- df1
+
+# Create dummy variables
+df <- dummy_cols(df, select_columns = "group")
+df <- dummy_cols(df, select_columns = "edu")
+df <- dummy_cols(df, select_columns = "race")
+df <- dummy_cols(df, select_columns = "age")
+df <- dummy_cols(df, select_columns = "occ")
+df <- dummy_cols(df, select_columns = "work")
+
+#
+stargazer(
+  df %>%
+    select(uptake,
+           likely,worry,safe,imp,family,belief,republic,
+           male,urban,
+           race_white,race_black,race_hispanic,race_asian,
+           `age_15-24`,`age_25-34`,`age_35-44`,`age_45-54`,`age_55-64`, age_others,
+           edu_high_school,edu_some_college,edu_bachelor, edu_postgraduate,edu_others,
+           occ_management_and_professional,occ_service,occ_sales_and_office,occ_farming_fishing_and_forestry,occ_construction_extraction_and_maintenance,occ_others,
+           work_home,work_onsite,work_hybrid
+           ) %>%
+    as.data.frame(),
+  type = 'latex',
+  summary.stat = c("mean", "sd", "median", "min", "max","N"),
+  title = "Summary Statistics in Baseline Survey",
+  header = F
+)
+
+```
+
+
+```{r echo=FALSE,warning = FALSE, message = FALSE}
+
+# Balance Test
+data <- data.frame(
+  "variables" = c(
+           # Vaccination Status and Intention 1-2
+           "uptake","likely",
+           # Attitudes towards covid 3-6
+           "worry","safe","imp","family",
+           # Attitudes to social media 7
+           "belief",
+           # Party Affiliation
+           "republic",
+           # Demographic controls 9-30
+           "male","urban",
+           "race_white","race_black","race_hispanic","race_asian",
+           "edu_high_school","edu_some_college","edu_bachelor", "edu_postgraduate",
+           "`age_15-24`","`age_25-34`","`age_35-44`","`age_45-44`","`age_55-64`",
+           "occ_management_and_professional","occ_service","occ_sales_and_office",
+           "occ_farming_fishing_and_forestry","occ_construction_extraction_and_maintenance",
+           "work_home","work_onsite"),
+  "control" = c(0.509,3.009,3.021,2.997,3.034,3.087,2.949,0.495,0.479,0.513,
+                0.636,0.167,0.102,0.052,0.354,0.260,0.135,0.051,0.244,0.255,
+                0.151,0.143,0.152,0.303,0.204,0.288,0.043,0.102,0.204,0.500),
+  "emotion" = c(0.498,2.968,3.026,2.999,3.005,3.029,3.038,0.480,0.499,0.491,
+                0.640,0.157,0.105,0.059,0.364,0.236,0.144,0.059,0.235,0.256,
+                0.153,0.159,0.147,0.310,0.192,0.294,0.049,0.109,0.199,0.514),
+  "reason" =  c(0.516,2.939,3.031,3.014,2.997,3.015,2.978,0.508,0.495,0.506,
+                0.650,0.140,0.107,0.066,0.361,0.263,0.134,0.050,0.246,0.253,
+                0.143,0.146,0.157,0.272,0.0193,0.321,0.052,0.098,0.198,0.485),
+  "con vs emo" = c(0.549,0.435,0.930,0.959,0.577,0.264,0.082,0.424,0.287,0.236,
+                           0.826,0.428,0.801,0.438,0.591,0.135,0.450,0.309,0.561,0.936,
+                           0.890,0.227,0.706,0.678,0.387,0.747,0.412,0.582,0.758,0.449),
+  "con vs rea" =  c(0.686,0.177,0.843,0.736,0.477,0.163,0.595,0.466,0.384,0.691,
+                           0.400,0.040,0.641,0.114,0.680,0.833,0.961,0.894,0.900,0.901,
+                           0.510,0.830,0.679,0.066,0.214,0.051,0.252,0.662,0.703,0.401),
+  "emo vs rea" = c(0.317,0.574,0.913,0.776,0.876,0.779,0.237,0.128,0.843,0.431,
+                   0.537,0.209,0.832,0.424,0.899,0.089,0.422,0.251,0.481,0.838,
+                   0.428,0.321,0.430,0.025,0.129,0.105,0.749,0.325,0.943,0.117)
+)
+
+# Display the table using knitr::kable()
+
+knitr::kable(data, caption = "Balance Test","latex", booktabs = T) %>%
+   kable_styling(font_size = 8 ) %>%
+   group_rows("Vaccination status and intention", start_row = 1, end_row = 2) %>%
+   group_rows("Attitudes towards covid", start_row = 3, end_row = 6) %>%
+   group_rows("Attitudes towards social media", start_row = 7, end_row = 7) %>%
+   group_rows("Party affiliation", start_row = 8, end_row = 8) %>%
+   group_rows("Demographic controls", start_row = 9, end_row = 30) %>%
+   add_header_above(c(" ","Control" = 1, "Treatment" = 2,"P-value" = 3)) %>%
+   add_footnote(c("Column 1-3 show mean, column 4-6 report the p-value of the test of equality of means of control group v.s. emotion group, control group v.s. reason group, emotion group v.s. reason group." ,
+                "All the variables are from answers to the questions in our survey.",
+                "P-value larger than 0.05 means that we cannot reject the null hypothesis that there is no significant difference between the means of the two groups being compared. We find that most variables are balanced, except in two t-tests. The race_black variable in the control and reason groups, and the occ_management_and_professional variable in the emotion and reason groups, are significant at a 95% confidence level but not significant at a 99% confidence level. Overall, we find there is no significant difference between the means of the compared two groups."), notation="symbol")
+
+```
+
+
+```{r echo = FALSE,warning = FALSE, message = FALSE}
+# Simulate endline survey data ----
+df2 <- df1
+
+# create dummy
+df2 <- dummy_cols(df2, select_columns = "group")
+df1 <- dummy_cols(df1, select_columns = "group")
+
+# df2 is after treatment
+df2$time <- 1
+
+# df1 is before treatment
+df1$time <- 0
+
+# Assumption: we assume people's attitudes towards many things changed 
+
+# Set a seed different from  df1
+set.seed(1234)
+###Attitudes towards covid-19###
+df2$worry <- sample(5, n, replace =T)
+df2$safe <- sample.int(5, n, replace = T)
+df2$imp <- sample.int(5,n,replace = T)
+df2$family <- sample.int(5,n,replace = T)
+df2$belief <- sample.int(5,n,replace = T)
+
+# df2$uptake
+df2$uptake <- 0.05*df2$group_reason + 0.1*df2$group_emotion+0.01*df2$treatment+0.01*df2$time + 0.5*df2$treatment*df2$time - 0.05*df2$worry + 0.05*df2$safe + 0.05*df2$imp + 0.1*df2$family + 0.1*df2$belief - 0.2*df2$republic + rnorm(n,0.5,1)
+
+# Create a new column 'uptake_integer' based on specified intervals
+df2$uptake <- cut(df2$uptake, breaks = c(-Inf, 1.2,Inf), labels = c(0, 1))
+df2$uptake <- as.numeric(as.character(df2$uptake))
+
+# df2$likely
+
+```
+
+
+```{r fig.height = 3.5, fig.width = 5.5,fig.align='center',fig.cap="Vaccination uptake before and after intervention"}
+# Convert to factor
+df1$uptake <- as.factor(df1$uptake)
+df2$uptake <- as.factor(df2$uptake)
+
+# p3
+df3 <- rbind(df1,df2)
+
+#df3$time <- as.character(df3$time)
+#df3$uptake <- as.character(df3$uptake)
+
+df3 <- df3 %>%
+  mutate(time_category = ifelse(time == 0, "before", "after"))
+df3 <- df3 %>%
+  mutate(Vaccination= ifelse(uptake == 1, "yes", "no")) %>%
+  filter(endline ==1)
+
+p3<- ggplot(df3, aes(x = time_category,
+                     y = stat(count),
+                     fill = Vaccination,
+                     label =stat(count)))+
+  geom_bar(position = "dodge",width = 0.5,color = "white")+
+  geom_text(stat = 'count',
+            position = position_dodge(0.5), 
+            vjust = -0.5, 
+            size = 3) + 
+  labs(x="Vaccination", 
+       y= "Number of participants")+
+  scale_fill_manual(values = c("lightgrey", "lightgreen")) +  # Set custom fill colors
+  scale_x_discrete(limits = c("before", "after")) +  # Reverse the order of x-axis labels
+  theme( legend.position="right", 
+                 axis.text.y=element_blank(),
+                 axis.title.x=element_blank(), axis.ticks.x=element_blank(), 
+                 axis.ticks.y=element_blank(),axis.title.y=element_blank(), 
+                 panel.background=element_blank())
+p3
+
+
+```
+
+
+```{r echo = FALSE,warning = FALSE, message = FALSE}
+
+## DID -----
+# Combine datasets for DiD analysis
+df1$uptake <- as.numeric(df1$uptake)
+df2$uptake <- as.numeric(df2$uptake)
+df4 <- rbind(df1,df2)
+
+# conditional logit regression
+df4$uptake <- as.numeric(df4$uptake)
+
+# generate dummy variables
+df4 <- dummy_cols(df4, select_columns = "edu")
+df4 <- dummy_cols(df4, select_columns = "race")
+df4 <- dummy_cols(df4, select_columns = "age")
+df4 <- dummy_cols(df4, select_columns = "occ")
+df4 <- dummy_cols(df4, select_columns = "work")
+
+```
+
+
+```{r echo = FALSE,warning = FALSE, message = FALSE}
+# treatment vs control ------
+df4 <- df4 %>%
+  filter(endline == 1)
+
+library(survival)
+
+reg1 <- clogit(uptake ~ treatment + time + treatment*time 
+              +strata(state),
+               df4, 
+               method = 'approximate')
+reg2 <- clogit(uptake ~ treatment + time + treatment*time
+               + male + urban 
+               + edu_bachelor + edu_some_college + edu_high_school+edu_postgraduate
+               + race_asian + race_black + race_hispanic + race_white+
+                 + `age_15-24`+ `age_25-34`+ `age_35-44`+ `age_45-54`+ `age_55-64`
+               + occ_management_and_professional+occ_service+occ_sales_and_office+occ_farming_fishing_and_forestry+occ_construction_extraction_and_maintenance
+               + work_home+work_onsite
+               + strata(state), df4, method = 'approximate')
+
+reg3 <- clogit(uptake ~ treatment + time + treatment*time
+               + male + urban 
+               + edu_bachelor + edu_some_college + edu_high_school+edu_postgraduate
+               + race_asian + race_black + race_hispanic + race_white+
+                 + `age_15-24`+ `age_25-34`+ `age_35-44`+ `age_45-54`+ `age_55-64`
+               + occ_management_and_professional+occ_service+occ_sales_and_office+occ_farming_fishing_and_forestry+occ_construction_extraction_and_maintenance
+               + work_home+work_onsite
+               + worry + safe + imp + family + belief + republic + strata(state), df4,method = 'approximate')
+
+# change order in stargazer
+parameters <- names(coef(reg3))
+desiredOrder <- c("treatment:time","treatment","time",
+                  "worry","safe","imp","family","belief","republic",
+                  "male", "urban",
+                  "edu_bachelor" , "edu_some_college", "edu_high_school","edu_postgraduate",
+                  "race_asian" , "race_black" ,"race_hispanic", "race_white",
+                  "`age_15-24`", "`age_25-34`","`age_35-44`","`age_45-54`","`age_55-64`",
+                  "occ_management_and_professional","occ_service","occ_sales_and_office","occ_farming_fishing_and_forestry","occ_construction_extraction_and_maintenance",
+                  "work_home","work_onsite"
+)
+order <- match(desiredOrder, parameters)
+
+#
+star <- stargazer(reg1,reg2,reg3,
+          title = "Facebook ads intervention and self-reported Covid-19 vaccination uptake",
+          type = "latex",
+          keep = c('treatment:time','treatment','time',"worry","safe","imp","family","belief","republic"),
+          add.lines = list(c("Demographic controls","No","Yes","Yes"),
+                           c("StateFE","Yes","Yes","Yes")),
+          order = order,
+          intercept.bottom = F,
+          header = F,
+          style = "qje",
+
+          notes.append = F,
+          notes = "This will be replaced"
+          )
+
+```
+
+
+```{r echo = FALSE,warning = FALSE, message = FALSE}
+  # reason vs control -----
+df4_r <- df4 %>%
+  filter(group_emotion != 1,endline == 1)
+
+library(survival)
+
+reg4 <- clogit(uptake ~ group_reason + time + group_reason*time 
+               +strata(state),
+               df4_r, 
+               method = 'approximate')
+
+reg5 <- clogit(uptake ~group_reason + time + group_reason*time 
+               + male + urban 
+               + edu_bachelor + edu_some_college + edu_high_school+edu_postgraduate
+               + race_asian + race_black + race_hispanic + race_white+
+                 + `age_15-24`+ `age_25-34`+ `age_35-44`+ `age_45-54`+ `age_55-64`
+               + occ_management_and_professional+occ_service+occ_sales_and_office+occ_farming_fishing_and_forestry+occ_construction_extraction_and_maintenance
+               + work_home+work_onsite
+               + strata(state), df4_r, method = 'approximate')
+
+reg6 <- clogit(uptake ~ group_reason + time + group_reason*time
+               + male + urban 
+               + edu_bachelor + edu_some_college + edu_high_school+edu_postgraduate
+               + race_asian + race_black + race_hispanic + race_white+
+                 + `age_15-24`+ `age_25-34`+ `age_35-44`+ `age_45-54`+ `age_55-64`
+               + occ_management_and_professional+occ_service+occ_sales_and_office+occ_farming_fishing_and_forestry+occ_construction_extraction_and_maintenance
+               + work_home+work_onsite
+               + worry + safe + imp + family + belief + republic + strata(state), df4_r,method = 'approximate')
+
+# change order in stargazer
+parameters <- names(coef(reg6))
+desiredOrder <- c("group_reason:time","group_reason","time",
+                  "worry","safe","imp","family","belief","republic",
+                  "male", "urban",
+                  "edu_bachelor" , "edu_some_college", "edu_high_school","edu_postgraduate",
+                  "race_asian" , "race_black" ,"race_hispanic", "race_white",
+                  "`age_15-24`", "`age_25-34`","`age_35-44`","`age_45-54`","`age_55-64`",
+                  "occ_management_and_professional","occ_service","occ_sales_and_office","occ_farming_fishing_and_forestry","occ_construction_extraction_and_maintenance",
+                  "work_home","work_onsite"
+)
+order <- match(desiredOrder, parameters)
+
+#
+stargazer(reg4,reg5,reg6,
+          title = "Reason ads intervention and self-reported Covid-19 vaccination uptake",
+          type = "latex",
+          keep = c('group_reason:time','group_reason','time',"worry","safe","imp","family","belief","republic"),
+          add.lines = list(c("Demographic controls","No","Yes","Yes"),
+                           c("StateFE","Yes","Yes","Yes")),
+          order = order,
+          intercept.bottom = F,
+          header = F)
+
+```
+
+
+
+```{r echo = FALSE,warning = FALSE, message = FALSE}
+# emotion vs control-----
+df4_e <- df4 %>%
+  filter(group_reason != 1, endline == 1)
+
+library(survival)
+
+reg7 <- clogit(uptake ~ group_emotion + time + group_emotion*time 
+               +strata(state),
+               df4_e, 
+               method = 'approximate')
+
+reg8 <- clogit(uptake ~group_emotion + time + group_emotion*time  
+               + male + urban 
+               + edu_bachelor + edu_some_college + edu_high_school+edu_postgraduate
+               + race_asian + race_black + race_hispanic + race_white+
+                 + `age_15-24`+ `age_25-34`+ `age_35-44`+ `age_45-54`+ `age_55-64`
+               + occ_management_and_professional+occ_service+occ_sales_and_office+occ_farming_fishing_and_forestry+occ_construction_extraction_and_maintenance
+               + work_home+work_onsite
+               + strata(state), df4_e, method = 'approximate')
+
+reg9 <- clogit(uptake ~ group_emotion + time + group_emotion*time 
+               + male + urban 
+               + edu_bachelor + edu_some_college + edu_high_school+edu_postgraduate
+               + race_asian + race_black + race_hispanic + race_white+
+                 + `age_15-24`+ `age_25-34`+ `age_35-44`+ `age_45-54`+ `age_55-64`
+               + occ_management_and_professional+occ_service+occ_sales_and_office+occ_farming_fishing_and_forestry+occ_construction_extraction_and_maintenance
+               + work_home+work_onsite
+               + worry + safe + imp + family + belief + republic + strata(state), df4_e,method = 'approximate')
+
+# change order in stargazer
+parameters <- names(coef(reg9))
+desiredOrder <- c("group_emotion:time","group_emotion","time",
+                  "worry","safe","imp","family","belief","republic",
+                  "male", "urban",
+                  "edu_bachelor" , "edu_some_college", "edu_high_school","edu_postgraduate",
+                  "race_asian" , "race_black" ,"race_hispanic", "race_white",
+                  "`age_15-24`", "`age_25-34`","`age_35-44`","`age_45-54`","`age_55-64`",
+                  "occ_management_and_professional","occ_service","occ_sales_and_office","occ_farming_fishing_and_forestry","occ_construction_extraction_and_maintenance",
+                  "work_home","work_onsite"
+)
+order <- match(desiredOrder, parameters)
+
+#
+stargazer(reg7,reg8,reg9,
+          title = "Emotion ads intervention and self-reported Covid-19 vaccination uptake",
+          type = "latex",
+          keep = c('group_emotion:time','group_emotion','time',"worry","safe","imp","family","belief","republic"),
+          add.lines = list(c("Demographic controls","No","Yes","Yes"),
+                           c("StateFE","Yes","Yes","Yes")),
+          order = order,
+          intercept.bottom = F,
+          header = F)
+```
+
+
+```{r}
+# by party
+# 哪种党派受到的影响更大，哪种党派收到哪种影响更大？
+df_h <- df4 %>%
+  filter(endline == 1)
+# democracy, emotion
+reg10 <- clogit(uptake ~ group_emotion + time + group_emotion*time 
+               + male + urban 
+               + edu_bachelor + edu_some_college + edu_high_school+edu_postgraduate
+               + race_asian + race_black + race_hispanic + race_white+
+                 + `age_15-24`+ `age_25-34`+ `age_35-44`+ `age_45-54`+ `age_55-64`
+               + occ_management_and_professional+occ_service+occ_sales_and_office+occ_farming_fishing_and_forestry+occ_construction_extraction_and_maintenance
+               + work_home+work_onsite
+               + worry + safe + imp + family + belief + republic 
+               + strata(state), 
+               data = df_h %>% filter(group_reason == 0,republic == 0),
+               method = 'approximate')
+# democracy, reason
+reg11 <- clogit(uptake ~ group_reason + time + group_reason*time 
+               + male + urban 
+               + edu_bachelor + edu_some_college + edu_high_school+edu_postgraduate
+               + race_asian + race_black + race_hispanic + race_white+
+                 + `age_15-24`+ `age_25-34`+ `age_35-44`+ `age_45-54`+ `age_55-64`
+               + occ_management_and_professional+occ_service+occ_sales_and_office+occ_farming_fishing_and_forestry+occ_construction_extraction_and_maintenance
+               + work_home+work_onsite
+               + worry + safe + imp + family + belief + republic 
+               + strata(state), 
+               data = df_h %>% filter(group_emotion == 0,republic == 0),
+               method = 'approximate')
+# republic, emotion
+reg12 <- clogit(uptake ~ group_emotion + time + group_emotion*time 
+               + male + urban 
+               + edu_bachelor + edu_some_college + edu_high_school+edu_postgraduate
+               + race_asian + race_black + race_hispanic + race_white+
+                 + `age_15-24`+ `age_25-34`+ `age_35-44`+ `age_45-54`+ `age_55-64`
+               + occ_management_and_professional+occ_service+occ_sales_and_office+occ_farming_fishing_and_forestry+occ_construction_extraction_and_maintenance
+               + work_home+work_onsite
+               + worry + safe + imp + family + belief + republic 
+               + strata(state), 
+               data = df_h %>% filter(group_reason == 0,republic == 1),
+               method = 'approximate')
+# republic, reason
+reg13 <- clogit(uptake ~ group_reason + time + group_reason*time 
+               + male + urban 
+               + edu_bachelor + edu_some_college + edu_high_school+edu_postgraduate
+               + race_asian + race_black + race_hispanic + race_white+
+                 + `age_15-24`+ `age_25-34`+ `age_35-44`+ `age_45-54`+ `age_55-64`
+               + occ_management_and_professional+occ_service+occ_sales_and_office+occ_farming_fishing_and_forestry+occ_construction_extraction_and_maintenance
+               + work_home+work_onsite
+               + worry + safe + imp + family + belief + republic 
+               + strata(state), 
+               data = df_h %>% filter(group_emotion == 0,republic == 1),
+               method = 'approximate')
+
+# stargazaer
+# change order in stargazer
+parameters <- names(coef(reg10))
+new <- c("group_reason:time","group_reason")
+parameters <- c(parameters, new)
+
+desiredOrder <- c("group_emotion:time","group_reason:time",
+                  "group_reason","group_emotion","time",
+                  "worry","safe","imp","family","belief","republic",
+                  "male", "urban",
+                  "edu_bachelor" , "edu_some_college", "edu_high_school","edu_postgraduate",
+                  "race_asian" , "race_black" ,"race_hispanic", "race_white",
+                  "`age_15-24`", "`age_25-34`","`age_35-44`","`age_45-54`","`age_55-64`",
+                  "occ_management_and_professional","occ_service","occ_sales_and_office","occ_farming_fishing_and_forestry","occ_construction_extraction_and_maintenance",
+                  "work_home","work_onsite"
+)
+order <- match(desiredOrder, parameters)
+
+#
+stargazer(reg10,reg11,reg12,reg13,
+          title = "Ads intervention and vaccination uptake by party affiliation",
+          type = "latex",
+          dep.var.labels = c("uptake"), 
+          column.labels = c("Democracy","Democracy","Republic", "Republic"), 
+          keep = c("group_emotion:time","group_reason:time","group_reason",
+                   "group_emotion","time","worry","safe","imp","family","belief"),
+          add.lines = list(c("Demographic controls","Yes","Yes","Yes","Yes"),
+                           c("State FE","Yes","Yes","Yes","Yes")),
+          order = order,
+          intercept.bottom = F,
+          header = F)
+```
+
+
+```{r}
+# by edu, emotion
+# 受教育程度越高，越难受到影响
+df_h <- df4 %>%
+  filter(endline == 1)
+# high school, emotion
+reg14 <- clogit(uptake ~ group_emotion + time + group_emotion*time 
+               + male + urban 
+               + edu_bachelor + edu_some_college + edu_high_school+edu_postgraduate
+               + race_asian + race_black + race_hispanic + race_white+
+                 + `age_15-24`+ `age_25-34`+ `age_35-44`+ `age_45-54`+ `age_55-64`
+               + occ_management_and_professional+occ_service+occ_sales_and_office+occ_farming_fishing_and_forestry+occ_construction_extraction_and_maintenance
+               + work_home+work_onsite
+               + worry + safe + imp + family + belief + republic 
+               + strata(state), 
+               data = df_h %>% filter(group_reason == 0,edu_high_school == 1),
+               method = 'approximate')
+# some college, emotion
+reg15 <- clogit(uptake ~ group_emotion + time + group_emotion*time 
+               + male + urban 
+               + edu_bachelor + edu_some_college + edu_high_school+edu_postgraduate
+               + race_asian + race_black + race_hispanic + race_white+
+                 + `age_15-24`+ `age_25-34`+ `age_35-44`+ `age_45-54`+ `age_55-64`
+               + occ_management_and_professional+occ_service+occ_sales_and_office+occ_farming_fishing_and_forestry+occ_construction_extraction_and_maintenance
+               + work_home+work_onsite
+               + worry + safe + imp + family + belief + republic 
+               + strata(state), 
+               data = df_h %>% filter(group_reason == 0,edu_some_college == 1),
+               method = 'approximate')
+# bachelor, reason
+reg16 <- clogit(uptake ~ group_emotion + time + group_emotion*time 
+               + male + urban 
+               + edu_bachelor + edu_some_college + edu_high_school+edu_postgraduate
+               + race_asian + race_black + race_hispanic + race_white+
+                 + `age_15-24`+ `age_25-34`+ `age_35-44`+ `age_45-54`+ `age_55-64`
+               + occ_management_and_professional+occ_service+occ_sales_and_office+occ_farming_fishing_and_forestry+occ_construction_extraction_and_maintenance
+               + work_home+work_onsite
+               + worry + safe + imp + family + belief + republic 
+               + strata(state), 
+               data = df_h %>% filter(group_reason == 0,edu_bachelor == 1),
+               method = 'approximate')
+# postgraduate, emotion
+reg17 <- clogit(uptake ~ group_emotion + time + group_emotion*time 
+               + male + urban 
+               + edu_bachelor + edu_some_college + edu_high_school+edu_postgraduate
+               + race_asian + race_black + race_hispanic + race_white+
+                 + `age_15-24`+ `age_25-34`+ `age_35-44`+ `age_45-54`+ `age_55-64`
+               + occ_management_and_professional+occ_service+occ_sales_and_office
+               +occ_farming_fishing_and_forestry+occ_construction_extraction_and_maintenance
+               + work_home+work_onsite
+               + worry + safe + imp + family + belief + republic 
+               + strata(state), 
+               data = df_h %>% filter(group_reason == 0,edu_postgraduate == 1),
+               method = 'approximate')
+
+# stargazaer
+# change order in stargazer
+parameters <- names(coef(reg14))
+
+
+desiredOrder <- c("group_emotion:time",
+                 "group_emotion","time",
+                  "worry","safe","imp","family","belief","republic",
+                  "male", "urban",
+                  "edu_bachelor" , "edu_some_college", "edu_high_school","edu_postgraduate",
+                  "race_asian" , "race_black" ,"race_hispanic", "race_white",
+                  "`age_15-24`", "`age_25-34`","`age_35-44`","`age_45-54`","`age_55-64`",
+                  "occ_management_and_professional","occ_service","occ_sales_and_office","occ_farming_fishing_and_forestry","occ_construction_extraction_and_maintenance",
+                  "work_home","work_onsite"
+)
+order <- match(desiredOrder, parameters)
+
+#
+stargazer(reg14,reg15,reg16,reg17,
+          title = "Emotional ads intervention and vaccination uptake by education",
+          type = "latex",
+          keep = c("group_emotion:time",
+                   "group_emotion","time",
+                   "worry","safe","imp","family","belief"),
+          add.lines = list(c("Demographic controls","Yes","Yes","Yes","Yes"),
+                           c("State FE","Yes","Yes","Yes","Yes")),
+          column.labels = c("High School","Some college","Bachelor","Postgraduate"), 
+          order = order,
+          intercept.bottom = F,
+          header = F)
+
+```
+
+```{r}
+
+# by edu, reason
+
+df_h <- df4 %>%
+  filter(endline == 1)
+# high school, reason
+reg18 <- clogit(uptake ~ group_reason + time + group_reason*time 
+               + male + urban 
+               + edu_bachelor + edu_some_college + edu_high_school+edu_postgraduate
+               + race_asian + race_black + race_hispanic + race_white+
+                 + `age_15-24`+ `age_25-34`+ `age_35-44`+ `age_45-54`+ `age_55-64`
+               + occ_management_and_professional+occ_service+occ_sales_and_office+occ_farming_fishing_and_forestry+occ_construction_extraction_and_maintenance
+               + work_home+work_onsite
+               + worry + safe + imp + family + belief + republic 
+               + strata(state), 
+               data = df_h %>% filter(group_emotion == 0,edu_high_school == 1),
+               method = 'approximate')
+# some college, reason
+reg19 <- clogit(uptake ~ group_reason + time + group_reason*time 
+               + male + urban 
+               + edu_bachelor + edu_some_college + edu_high_school+edu_postgraduate
+               + race_asian + race_black + race_hispanic + race_white+
+                 + `age_15-24`+ `age_25-34`+ `age_35-44`+ `age_45-54`+ `age_55-64`
+               + occ_management_and_professional+occ_service+occ_sales_and_office+occ_farming_fishing_and_forestry+occ_construction_extraction_and_maintenance
+               + work_home+work_onsite
+               + worry + safe + imp + family + belief + republic 
+               + strata(state), 
+               data = df_h %>% filter(group_emotion == 0,edu_some_college == 1),
+               method = 'approximate')
+# bachelor, reason
+reg20 <- clogit(uptake ~ group_reason + time + group_reason*time 
+               + male + urban 
+               + edu_bachelor + edu_some_college + edu_high_school+edu_postgraduate
+               + race_asian + race_black + race_hispanic + race_white+
+                 + `age_15-24`+ `age_25-34`+ `age_35-44`+ `age_45-54`+ `age_55-64`
+               + occ_management_and_professional+occ_service+occ_sales_and_office+occ_farming_fishing_and_forestry+occ_construction_extraction_and_maintenance
+               + work_home+work_onsite
+               + worry + safe + imp + family + belief + republic 
+               + strata(state), 
+               data = df_h %>% filter(group_emotion == 0,edu_bachelor == 1),
+               method = 'approximate')
+# postgraduate, emotion
+reg21 <- clogit(uptake ~ group_reason + time + group_reason*time 
+               + male + urban 
+               + edu_bachelor + edu_some_college + edu_high_school+edu_postgraduate
+               + race_asian + race_black + race_hispanic + race_white+
+                 + `age_15-24`+ `age_25-34`+ `age_35-44`+ `age_45-54`+ `age_55-64`
+               + occ_management_and_professional+occ_service+occ_sales_and_office
+               +occ_farming_fishing_and_forestry+occ_construction_extraction_and_maintenance
+               + work_home+work_onsite
+               + worry + safe + imp + family + belief + republic 
+               + strata(state), 
+               data = df_h %>% filter(group_emotion == 0,edu_postgraduate == 1),
+               method = 'approximate')
+
+# stargazaer
+# change order in stargazer
+parameters <- names(coef(reg18))
+
+
+desiredOrder <- c("group_reason:time",
+                 "group_reason","time",
+                  "worry","safe","imp","family","belief","republic",
+                  "male", "urban",
+                  "edu_bachelor" , "edu_some_college", "edu_high_school","edu_postgraduate",
+                  "race_asian" , "race_black" ,"race_hispanic", "race_white",
+                  "`age_15-24`", "`age_25-34`","`age_35-44`","`age_45-54`","`age_55-64`",
+                  "occ_management_and_professional","occ_service","occ_sales_and_office","occ_farming_fishing_and_forestry","occ_construction_extraction_and_maintenance",
+                  "work_home","work_onsite"
+)
+order <- match(desiredOrder, parameters)
+
+#
+stargazer(reg18,reg19,reg20,reg21,
+          title = "Reason ads intervention and vaccination uptake by education",
+          type = "latex",
+          keep = c("group_reason:time",
+                   "group_reason","time",
+                   "worry","safe","imp","family","belief"),
+          add.lines = list(c("Demographic controls","Yes","Yes","Yes","Yes"),
+                           c("State FE","Yes","Yes","Yes","Yes")),
+          column.labels = c("High School","Some college","Bachelor","Postgraduate"), 
+          order = order,
+          intercept.bottom = F,
+          header = F)
+
+```
+
+
+```{r}
+# by age, emotion
+# 受教育程度越高，越难受到影响
+df_h <- df4 %>%
+  filter(endline == 1)
+# high school, emotion
+reg22 <- clogit(uptake ~ group_emotion + time + group_emotion*time 
+               + male + urban 
+               + edu_bachelor + edu_some_college + edu_high_school+edu_postgraduate
+               + race_asian + race_black + race_hispanic + race_white+
+                 + `age_15-24`+ `age_25-34`+ `age_35-44`+ `age_45-54`+ `age_55-64`
+               + occ_management_and_professional+occ_service+occ_sales_and_office+occ_farming_fishing_and_forestry+occ_construction_extraction_and_maintenance
+               + work_home+work_onsite
+               + worry + safe + imp + family + belief + republic 
+               + strata(state), 
+               data = df_h %>% filter(group_reason == 0,`age_15-24` == 1),
+               method = 'approximate')
+# some college, emotion
+reg23 <- clogit(uptake ~ group_emotion + time + group_emotion*time 
+               + male + urban 
+               + edu_bachelor + edu_some_college + edu_high_school+edu_postgraduate
+               + race_asian + race_black + race_hispanic + race_white+
+                 + `age_15-24`+ `age_25-34`+ `age_35-44`+ `age_45-54`+ `age_55-64`
+               + occ_management_and_professional+occ_service+occ_sales_and_office+occ_farming_fishing_and_forestry+occ_construction_extraction_and_maintenance
+               + work_home+work_onsite
+               + worry + safe + imp + family + belief + republic 
+               + strata(state), 
+               data = df_h %>% filter(group_reason == 0,`age_25-34` == 1),
+               method = 'approximate')
+# bachelor, reason
+reg24 <- clogit(uptake ~ group_emotion + time + group_emotion*time 
+               + male + urban 
+               + edu_bachelor + edu_some_college + edu_high_school+edu_postgraduate
+               + race_asian + race_black + race_hispanic + race_white+
+                 + `age_15-24`+ `age_25-34`+ `age_35-44`+ `age_45-54`+ `age_55-64`
+               + occ_management_and_professional+occ_service+occ_sales_and_office+occ_farming_fishing_and_forestry+occ_construction_extraction_and_maintenance
+               + work_home+work_onsite
+               + worry + safe + imp + family + belief + republic 
+               + strata(state), 
+               data = df_h %>% filter(group_reason == 0,`age_35-44` == 1),
+               method = 'approximate')
+# postgraduate, emotion
+reg25 <- clogit(uptake ~ group_emotion + time + group_emotion*time 
+               + male + urban 
+               + edu_bachelor + edu_some_college + edu_high_school+edu_postgraduate
+               + race_asian + race_black + race_hispanic + race_white+
+                 + `age_15-24`+ `age_25-34`+ `age_35-44`+ `age_45-54`+ `age_55-64`
+               + occ_management_and_professional+occ_service+occ_sales_and_office
+               +occ_farming_fishing_and_forestry+occ_construction_extraction_and_maintenance
+               + work_home+work_onsite
+               + worry + safe + imp + family + belief + republic 
+               + strata(state), 
+               data = df_h %>% filter(group_reason == 0,`age_45-54` == 1),
+               method = 'approximate')
+
+reg26 <- clogit(uptake ~ group_emotion + time + group_emotion*time 
+               + male + urban 
+               + edu_bachelor + edu_some_college + edu_high_school+edu_postgraduate
+               + race_asian + race_black + race_hispanic + race_white+
+                 + `age_15-24`+ `age_25-34`+ `age_35-44`+ `age_45-54`+ `age_55-64`
+               + occ_management_and_professional+occ_service+occ_sales_and_office
+               +occ_farming_fishing_and_forestry+occ_construction_extraction_and_maintenance
+               + work_home+work_onsite
+               + worry + safe + imp + family + belief + republic 
+               + strata(state), 
+               data = df_h %>% filter(group_reason == 0,`age_55-64` == 1),
+               method = 'approximate')
+
+# stargazaer
+# change order in stargazer
+parameters <- names(coef(reg22))
+
+
+desiredOrder <- c("group_emotion:time",
+                 "group_emotion","time",
+                  "worry","safe","imp","family","belief","republic",
+                  "male", "urban",
+                  "edu_bachelor" , "edu_some_college", "edu_high_school","edu_postgraduate",
+                  "race_asian" , "race_black" ,"race_hispanic", "race_white",
+                  "`age_15-24`", "`age_25-34`","`age_35-44`","`age_45-54`","`age_55-64`",
+                  "occ_management_and_professional","occ_service","occ_sales_and_office","occ_farming_fishing_and_forestry","occ_construction_extraction_and_maintenance",
+                  "work_home","work_onsite"
+)
+order <- match(desiredOrder, parameters)
+
+#
+stargazer(reg22,reg23,reg24,reg25,reg26,
+          title = "Emotional ads intervention and vaccination uptake by age",
+          type = "latex",
+          keep = c("group_emotion:time",
+                   "group_emotion","time",
+                   "worry","safe","imp","family","belief"),
+          add.lines = list(c("Demographic controls","Yes","Yes","Yes","Yes","Yes"),
+                           c("State FE","Yes","Yes","Yes","Yes","Yes")),
+          column.labels = c("15-24","25-34","35-44","45-54","55-64"), 
+          order = order,
+          intercept.bottom = F,
+          header = F)
+
+```
+
+
+```{r}
+
+# by age, reason
+
+df_h <- df4 %>%
+  filter(endline == 1)
+# high school, reason
+reg27 <- clogit(uptake ~ group_reason + time + group_reason*time 
+               + male + urban 
+               + edu_bachelor + edu_some_college + edu_high_school+edu_postgraduate
+               + race_asian + race_black + race_hispanic + race_white+
+                 + `age_15-24`+ `age_25-34`+ `age_35-44`+ `age_45-54`+ `age_55-64`
+               + occ_management_and_professional+occ_service+occ_sales_and_office+occ_farming_fishing_and_forestry+occ_construction_extraction_and_maintenance
+               + work_home+work_onsite
+               + worry + safe + imp + family + belief + republic 
+               + strata(state), 
+               data = df_h %>% filter(group_emotion == 0,`age_15-24`==1),
+               method = 'approximate')
+# some college, reason
+reg28 <- clogit(uptake ~ group_reason + time + group_reason*time 
+               + male + urban 
+               + edu_bachelor + edu_some_college + edu_high_school+edu_postgraduate
+               + race_asian + race_black + race_hispanic + race_white+
+                 + `age_15-24`+ `age_25-34`+ `age_35-44`+ `age_45-54`+ `age_55-64`
+               + occ_management_and_professional+occ_service+occ_sales_and_office+occ_farming_fishing_and_forestry+occ_construction_extraction_and_maintenance
+               + work_home+work_onsite
+               + worry + safe + imp + family + belief + republic 
+               + strata(state), 
+               data = df_h %>% filter(group_emotion == 0,`age_25-34` == 1),
+               method = 'approximate')
+# bachelor, reason
+reg29 <- clogit(uptake ~ group_reason + time + group_reason*time 
+               + male + urban 
+               + edu_bachelor + edu_some_college + edu_high_school+edu_postgraduate
+               + race_asian + race_black + race_hispanic + race_white+
+                 + `age_15-24`+ `age_25-34`+ `age_35-44`+ `age_45-54`+ `age_55-64`
+               + occ_management_and_professional+occ_service+occ_sales_and_office+occ_farming_fishing_and_forestry+occ_construction_extraction_and_maintenance
+               + work_home+work_onsite
+               + worry + safe + imp + family + belief + republic 
+               + strata(state), 
+               data = df_h %>% filter(group_emotion == 0,`age_35-44`==1),
+               method = 'approximate')
+# postgraduate, emotion
+reg30 <- clogit(uptake ~ group_reason + time + group_reason*time 
+               + male + urban 
+               + edu_bachelor + edu_some_college + edu_high_school+edu_postgraduate
+               + race_asian + race_black + race_hispanic + race_white+
+                 + `age_15-24`+ `age_25-34`+ `age_35-44`+ `age_45-54`+ `age_55-64`
+               + occ_management_and_professional+occ_service+occ_sales_and_office
+               +occ_farming_fishing_and_forestry+occ_construction_extraction_and_maintenance
+               + work_home+work_onsite
+               + worry + safe + imp + family + belief + republic 
+               + strata(state), 
+               data = df_h %>% filter(group_emotion == 0,`age_45-54`==1),
+               method = 'approximate')
+
+reg31 <- clogit(uptake ~ group_reason + time + group_reason*time 
+               + male + urban 
+               + edu_bachelor + edu_some_college + edu_high_school+edu_postgraduate
+               + race_asian + race_black + race_hispanic + race_white+
+                 + `age_15-24`+ `age_25-34`+ `age_35-44`+ `age_45-54`+ `age_55-64`
+               + occ_management_and_professional+occ_service+occ_sales_and_office
+               + occ_farming_fishing_and_forestry
+               + occ_construction_extraction_and_maintenance
+               + work_home+work_onsite
+               + worry + safe + imp + family + belief + republic 
+               + strata(state), 
+               data = df_h %>% filter(group_emotion == 0,`age_55-64` == 1),
+               method = 'approximate')
+
+# stargazaer
+# change order in stargazer
+parameters <- names(coef(reg27))
+
+
+desiredOrder <- c("group_reason:time",
+                 "group_reason","time",
+                  "worry","safe","imp","family","belief","republic",
+                  "male", "urban",
+                  "edu_bachelor" , "edu_some_college", "edu_high_school","edu_postgraduate",
+                  "race_asian" , "race_black" ,"race_hispanic", "race_white",
+                  "`age_15-24`", "`age_25-34`","`age_35-44`","`age_45-54`","`age_55-64`",
+                  "occ_management_and_professional","occ_service","occ_sales_and_office","occ_farming_fishing_and_forestry","occ_construction_extraction_and_maintenance",
+                  "work_home","work_onsite"
+)
+order <- match(desiredOrder, parameters)
+
+#
+stargazer(reg27,reg28,reg29,reg30,reg31,
+          title = "Reason ads intervention and vaccination uptake by education",
+          type = "latex",
+          keep = c("group_reason:time",
+                   "group_reason","time",
+                   "worry","safe","imp","family","belief"),
+          add.lines = list(c("Demographic controls","Yes","Yes","Yes","Yes","Yes"),
+                           c("State FE","Yes","Yes","Yes","Yes","Yes")),
+          column.labels = c("15-24","25-34","35-44","45-54","55-64"), 
+          order = order,
+          intercept.bottom = F,
+          header = F)
+
+```

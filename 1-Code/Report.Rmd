@@ -1,0 +1,72 @@
+---
+title: "Promoting Vaccination Uptake: A Simulated Randomized Trail of Social Media Intervention"
+author: "Yanxi Hou"
+date: '2023-12-24'
+output: pdf_document
+---
+
+## I. Introduction
+
+Previous studies have indicated that conducting research in controlled groups was effective for studying how social media interventions impact vaccination attitudes and intentions [1-5]. This study aimed to find out if ads intervention on Facebook could increase vaccination uptake. I conducted an analysis on simulated survey data from randomly assigned treatment and control groups. There were two types of ads in my study: reason and emotion. The reason ad presented scientific information about the virus and immunization rates, while the emotion ad aimed to highlight the prospect of closer relationships after vaccination. 
+
+I simulated the data based on the survey questions and assumptions listed in Appendix 2. (I assumed that the study took place on Jan 1st 2022 when people started concerning whether they should get a 2nd dose of vaccination, and the ad intervention lasted for three months.) At step one, I recruited 5,000 Facebook user across US, with the 50 states and 1 special territory as clusters. At step two, each participant in the survey was randomly assigned to one of three groups: 1/3 received the first ad (reason), 1/3 received the first ad (emotion), and 1/3 received no ad (control group). The survey was conducted at two time points: Jan 1st 2022 (Baseline) and Mar 31st 2022 (Endline). The survey contained questions on Covid-19 vaccination status, attitudes towards vaccination, attitudes towards social media, party affiliation and demographic controls. Ultimately, 4,500 individuals responded to the final survey.
+
+The primary outcome of the study was the the self-reported vaccine uptake among participants. In the survey, I asked the participants: have you received a COVID-19 vaccine? The uptake was equal to 1 when respondent answered 'yes' or 'no, but I made an appointment'. The uptake was equal to 0 when respondent answered 'no'. I used logistic regression to test whether our ad intervention impacted vaccine uptake. In the analysis of the impact of ads below, I used pre- and post-intervention vaccination uptake data to calculate estimates. These estimates were based on a difference-in-difference (DiD) specification in equation below
+
+\begin{equation}
+logit(y_{i g t})=\alpha+\beta_g D_{i g}+\gamma \text { Post }_{i t}+\delta_g D_{i g} \times \text { Post }_{i t}+\varepsilon_{i g t}
+\end{equation}
+
+where logit($y_{i g t}$) represents the log-odds of the binary outcome variable being 1, $D_{i g}$ was a dummy variable equal to 1 if participant i is in treatment group g, and $Post_{i t}$ is a dummy equal to 1 if the observation for participant i was after the adoption of the intervention. The coefficient of interest, $\delta_g$, measured the extent to which the outcome logit($y_{i g t}$) for participant i in the post period differed from the expected level, given its baseline level. DiD relied on the assumption that, in the absence of the ads, the treatment group (reason or emotion ads) would have the same mean change in the vaccine uptakes as the control group (no ad). Our balance test in Table 3 proved that there was no difference between the treatment group and control group.
+
+## II. Research Questions
+
+1. Can the Facebook ad campaigns increase COVID-19 vaccination uptake?
+
+2. Which is more effective in promoting vaccination: reason-based advertisements or emotion-based advertisements?
+
+3. Do varying advertisements demonstrate effectiveness with specific target demographics in promoting vaccination?
+
+## III. Results
+
+**3.1 Balance Test**
+
+The balance test in Table 3 reported comparisons of participates in control group and two treatment groups. It showed that, in general, the randomization assignment balanced these groups on observed vaccination status and intention, attitudes towards COVID, attitudes towards social media, party affiliation, and demographics.
+
+**3.2 Main Results**
+
+A significant value of the coefficient, $\delta_g$, for the interaction term ($D_{i g} \times \text { Post }_{i t}$) would indicate a differential change in vaccination uptake between the treatment and control group. Table 4 showed that the odds of being vaccinated for the treatment group compared to the control group are 1.467 times higher in the post-treatment period compared to the pre-treatment period, on average. Furthermore, Tables 5 and 6 shed light on the varying impact of emotional and rational ads. In Tables 5 and 6, I found that emotional ads had a stronger influence compared to rational ads, on average. Specifically, when it came to getting vaccinated, the odds of individuals in the emotional ads group, compared to the control group, were 1.395 times higher in the period after the treatment (post-treatment) compared to before the treatment (pre-treatment). Similarly, for the rational ads group, the odds of being vaccinated compared to the control group are 1.543 times higher in the post-treatment period compared to the pre-treatment period. Overall, the ad intervention, especially for emotion ad seemed quite effective in promoting vaccination uptake. 
+
+**3.3 Heterogeneity Analysis**
+
+Would the impact of advertising intervention be different among participants with different party affiliation, education and age? To test these, I ran separate regressions for different groups of people. 
+
+I discovered that people in both republics and democracies were notably affected by advertisements when it came to getting vaccinated, particularly emotional ads. However, the impact was a bit stronger for republic groups compared to democracy groups. This aligned with the vaccination rates reported through news[^1] during that time.
+
+[^1]:[For COVID-19 vaccinations, party affiliation matters more than race and ethnicity](https://www.brookings.edu/articles/for-covid-19-vaccinations-party-affiliation-matters-more-than-race-and-ethnicity/)
+
+The regression results from Tables 8 and 9 reveal distinct impacts of emotional and rational ad appeals across educational groups, particularly influencing individuals with lower levels of education. For those with a high school education or some college experience, the ads intervention significantly increased their vaccination uptake. However, individuals with bachelor's and postgraduate degrees showed positive coefficients, yet they did not reach statistical significance at the 95% confidence level. But, I was uncertain if this was influenced by the limited number of samples from individuals with higher education levels.
+
+Tables 10 and 11 demonstrate variations in the impact of emotional and rational ads among different age groups. Emotional ads had a more pronounced effect on individuals aged 25-55, while rational ads appeared to be more impactful for those aged 45 and above. This may be attributed to individuals between 25 and 55 resonating more with emotional appeals, potentially influenced by family responsibilities, career objectives, and personal relationships. In contrast, individuals aged 45 and above seemed to prioritize rational considerations, such as health and long-term planning.
+
+## IV. Discussion and Conclusion
+
+Promoting vaccination uptake was a core objective for health organizations during the pandemic. The analysis, conducted on a simulated data set, revealed that emotion-based and reason-based ads on social media can increase vaccination uptakes. To determine participants for the intervention, we conducted randomization, ensuring a balance between treatment and control groups across Covid-19 vaccination status, attitudes towards vaccination, attitudes towards social media, party affiliation, and demographic controls. The results underscored that individuals with diverse political affiliations, educational backgrounds, and ages may be influenced in distinct ways. Therefore, in practical applications, it would be advisable to tailor ad designs more specifically to target different groups of people.
+
+## References
+
+1. Brandt HM, Sundstrom B, Monroe CM, Turner-McGrievy G, Larsen C, Stansbury M, et al. Evaluating a Technology-Mediated HPV Vaccination Awareness Intervention: A Controlled, Quasi-Experimental, Mixed Methods Study. Vaccines (Basel). 2020; 8(4). https://doi.org/10.3390/vaccines8040749 PMID: 33321975
+
+2. Chen L, Yang X, Huang X. Promoting HPV vaccination on social media: interactive effects of threat, efficacy and social cues. Human Vaccines & Immunotherapeutics. 2021; 17(11):4442–56. https://doi.org/10.1080/21645515.2021.1975449 PMID: 34623229
+
+3. Daley MF, Narwaney KJ, Shoup JA, Wagner NM, Glanz JM. Addressing Parents’ Vaccine Concerns: A Randomized Trial of a Social Media Intervention. Am J Prev Med. 2018; 55(1):44–54. https://doi.org/10.1016/j.amepre.2018.04.010 PMID: 29773490
+
+4. Lee MJ, Cho J. Promoting HPV Vaccination Online: Message Design and Media Choice. Health Promotion Practice. 2017; 18(5):645–53. https://doi.org/10.1177/1524839916688229 PMID: 28129691
+
+5. Ortiz RR, Shafer A, Cates J, Coyne-Beasley T. Development and Evaluation of a Social Media Health Intervention to Improve Adolescents’ Knowledge About and Vaccination Against the Human Papillomavirus. Glob Pediatr Health. 2018; 5:2333794x18777918. https://doi.org/10.1177/2333794X18777918 PMID: 29872667
+
+
+## Appendix
+A1: Tables and Graphics in the Report
+
+A2: Survey Questions and Simulation Assumptions
