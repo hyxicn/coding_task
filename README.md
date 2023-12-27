@@ -25,7 +25,7 @@ Reproducing **full_report.pdf** file by two steps:
 
 1. Run the *Report.Rmd* in the /code/ folder to get the body of the paper
    
-2. Run the *Apendix1.Rmd*  in the /code/ folder to get the graphics and tables in the paper
+2. Run the *Apendix_1.Rmd*  in the /code/ folder to get the graphics and tables in the paper
 
 
 
