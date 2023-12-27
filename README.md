@@ -12,15 +12,20 @@ Baseline survey completed by all participants; endline survey completed by 4,500
 1. Data simulation
 
 Write a script to simulate the raw data:
+
 One dataset for the baseline survey (e.g., with a unique identifier, some basic demographic information, and related questions)
+
 One dataset that contains information on the random assignment
+
 One dataset for the endline survey
 
 2. Analysis and Reporting
 
+Merge the simulated datasets;
+
+Produce tables or figures to evaluate the effectiveness of each campaign.
+
 ## Results
 
-Merge the simulated datasets;
-Produce tables or figures to evaluate the effectiveness of each campaign.
 
 
